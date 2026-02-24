@@ -162,7 +162,7 @@
             useEffect(() => {
                 const loadDefaultDictionary = async () => {
                     try {
-                        const response = await fetch(encodeURI(DEFAULT_DICTIONARY_FILE));
+                        const response = await fetch(DEFAULT_DICTIONARY_FILE);
                         if (!response.ok) {
                             throw new Error(`No se pudo cargar ${DEFAULT_DICTIONARY_FILE}`);
                         }
