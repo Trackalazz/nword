@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dual N-Word | 1Kosmon</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; margin: 0; background:#0f172a; color:#e2e8f0; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 20px; }
+    .card { background:#111827; border:1px solid #334155; border-radius:16px; padding:20px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .signal { min-height:120px; display:flex; align-items:center; justify-content:center; font-size:42px; font-weight:700; border-radius:12px; border:1px solid #475569; background:#020617; }
+    button { background:#4f46e5; color:white; border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; }
+    button.secondary{ background:#334155; }
+    input { width:70px; padding:8px; border-radius:8px; border:1px solid #475569; background:#0b1220; color:#e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Dual N-Word (1Kosmon)</h1>
+    <div class="card">
+      <p>Recuerda la <b>letra</b> y la <b>posición</b>. Pulsa cuando coincidan con hace <b>N</b> turnos.</p>
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+        <label>N: <input id="n" type="number" min="1" max="4" value="2" /></label>
+        <label>Ritmo(ms): <input id="pace" type="number" min="700" max="4000" value="1500" /></label>
+        <button id="start">Iniciar</button>
+        <button id="stop" class="secondary">Detener</button>
+      </div>
+      <div class="grid">
+        <div>
+          <h3>Letra</h3>
+          <div class="signal" id="letter">-</div>
+          <button id="hitLetter">Coincide Letra (A)</button>
+        </div>
+        <div>
+          <h3>Posición</h3>
+          <div class="signal" id="pos">-</div>
+          <button id="hitPos">Coincide Posición (L)</button>
+        </div>
+      </div>
+      <p id="stats" style="margin-top:14px;">Puntos: 0</p>
+    </div>
+  </div>
+<script>
+(() => {
+  const letters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
+  const positions = ['↖','↑','↗','←','●','→','↙','↓','↘'];
+  let seq = [];
+  let timer = null;
+  let score = 0;
+  let awaiting = {letter:false,pos:false};
+
+  const $ = (id) => document.getElementById(id);
+  const refreshStats = () => $('stats').textContent = `Puntos: ${score} | Turno: ${seq.length}`;
+
+  function next(){
+    const item = {
+      letter: letters[Math.floor(Math.random()*letters.length)],
+      pos: positions[Math.floor(Math.random()*positions.length)]
+    };
+    seq.push(item);
+    $('letter').textContent = item.letter;
+    $('pos').textContent = item.pos;
+    awaiting = {letter:true,pos:true};
+    refreshStats();
+  }
+
+  function check(type){
+    if(!awaiting[type]) return;
+    awaiting[type]=false;
+    const n = parseInt($('n').value,10) || 2;
+    const i = seq.length-1;
+    if(i-n < 0){ score -= 1; refreshStats(); return; }
+    const ok = seq[i][type] === seq[i-n][type];
+    score += ok ? 2 : -1;
+    refreshStats();
+  }
+
+  $('start').onclick = () => {
+    clearInterval(timer);
+    seq=[]; score=0; refreshStats();
+    next();
+    const pace = parseInt($('pace').value,10) || 1500;
+    timer = setInterval(next, pace);
+  };
+  $('stop').onclick = () => clearInterval(timer);
+  $('hitLetter').onclick = () => check('letter');
+  $('hitPos').onclick = () => check('pos');
+  window.addEventListener('keydown', (e)=>{
+    if(e.key.toLowerCase()==='a') check('letter');
+    if(e.key.toLowerCase()==='l') check('pos');
+  });
+  refreshStats();
+})();
+</script>
+</body>
+</html>
