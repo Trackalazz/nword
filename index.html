@@ -76,6 +76,7 @@
                 .replace(/\s+/g, ' ')
                 .trim();
         
+        const DUAL_NWORD_FILE = '1kosmon.html';
         const DUAL_NWORD_FILE = '1Kosmon.html';
 
         const DEFAULT_DICTIONARY_FILE = 'diccionario personal.txt';
@@ -243,6 +244,11 @@
 
             // Iniciar Juego Global
             const startGame = () => {
+                if (gameMode === 'dual-nword') {
+                    setScreen('dual-nword');
+                    return;
+                }
+
                 const parsed = parseDictionary(rawText);
                 if (parsed.length < 1) {
                     alert("Por favor, carga palabras. Formato: 'Palabra: Definición'");
