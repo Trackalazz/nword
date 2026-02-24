@@ -83,7 +83,7 @@ atencion: capacidad de enfocarse en un estimulo relevante`;
         const App = () => {
             // --- ESTADOS ---
             const [screen, setScreen] = useState('menu');
-            const [gameMode, setGameMode] = useState('nback'); // 'nback' | 'definitions'
+            const [gameMode, setGameMode] = useState('nback'); // 'nback' | 'definitions' | 'dual-nword'
             
             // Datos
             const [rawText, setRawText] = useState("");
@@ -248,6 +248,11 @@ atencion: capacidad de enfocarse en un estimulo relevante`;
 
             // Iniciar Juego Global
             const startGame = () => {
+                if (gameMode === 'dual-nword') {
+                    setScreen('dual-nword');
+                    return;
+                }
+
                 const parsed = parseDictionary(rawText);
                 if (parsed.length < 1) {
                     alert("Por favor, carga palabras. Formato: 'Palabra: Definición'");
@@ -257,6 +262,8 @@ atencion: capacidad de enfocarse en un estimulo relevante`;
                 
                 if (gameMode === 'definitions') {
                     startDefinitionGame(parsed);
+                } else if (gameMode === 'dual-nword') {
+                    setScreen('dual-nword');
                 } else {
                     setRound(1);
                     setScore(0);
@@ -549,6 +556,13 @@ atencion: capacidad de enfocarse en un estimulo relevante`;
                                             <Book size={18} />
                                             Definiciones
                                         </button>
+                                        <button 
+                                            onClick={() => setGameMode('dual-nword')}
+                                            className={`flex-1 py-3 px-4 text-sm rounded-md font-medium transition flex items-center justify-center gap-2 ${gameMode === 'dual-nword' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-700 hover:text-slate-900'}`}
+                                        >
+                                            <Zap size={18} />
+                                            Dual N-Word
+                                        </button>
                                     </div>
                                 </div>
 
@@ -667,7 +681,7 @@ atencion: capacidad de enfocarse en un estimulo relevante`;
                                 )}
 
                                 <button onClick={startGame} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg flex justify-center items-center gap-2">
-                                    <Play size={20} /> {gameMode === 'definitions' ? 'Comenzar Minijuego' : 'Comenzar Sesión'}
+                                    <Play size={20} /> {gameMode === 'definitions' || gameMode === 'dual-nword' ? 'Comenzar Minijuego' : 'Comenzar Sesión'}
                                 </button>
                                 <p className="text-xs text-slate-500 mt-3 text-center">Consejo: usa frases cortas y definiciones consistentes para mejorar la precisión del entrenamiento.</p>
 
