@@ -76,9 +76,9 @@
                 .replace(/\s+/g, ' ')
                 .trim();
         
-    
-
-        const DEFAULT_DICTIONARY_FILE = 'diccionario personal.txt';
+        const DEFAULT_DICTIONARY_FILES = ['diccionario_personal.txt', 'diccionario personal.txt'];
+        const FALLBACK_DICTIONARY_TEXT = `memoria: capacidad de retener y recuperar informacion
+atencion: capacidad de enfocarse en un estimulo relevante`;
 
         const App = () => {
             // --- ESTADOS ---
@@ -142,19 +142,24 @@
 
             useEffect(() => {
                 const loadDefaultDictionary = async () => {
-                    try {
-                        const response = await fetch(DEFAULT_DICTIONARY_FILE);
-                        if (!response.ok) {
-                            throw new Error(`No se pudo cargar ${DEFAULT_DICTIONARY_FILE}`);
+                    for (const file of DEFAULT_DICTIONARY_FILES) {
+                        try {
+                            const response = await fetch(file);
+                            if (!response.ok) continue;
+                            const text = await response.text();
+                            if (!text.trim()) continue;
+                            setDefaultDictionaryText(text);
+                            setRawText(text);
+                            setCurrentSourceLabel(`Base por defecto: ${file}`);
+                            return;
+                        } catch (error) {
+                            console.warn(`No se pudo cargar ${file}:`, error);
                         }
-                        const text = await response.text();
-                        setDefaultDictionaryText(text);
-                        setRawText(text);
-                        setCurrentSourceLabel(`Base por defecto: ${DEFAULT_DICTIONARY_FILE}`);
-                    } catch (error) {
-                        console.error('Error al cargar el diccionario por defecto:', error);
-                        setCurrentSourceLabel('Sin base por defecto (error de carga)');
                     }
+
+                    setDefaultDictionaryText(FALLBACK_DICTIONARY_TEXT);
+                    setRawText(FALLBACK_DICTIONARY_TEXT);
+                    setCurrentSourceLabel('Base por defecto local (respaldo)');
                 };
 
                 loadDefaultDictionary();
@@ -226,7 +231,7 @@
                     return;
                 }
                 setRawText(defaultDictionaryText);
-                setCurrentSourceLabel(`Base por defecto: ${DEFAULT_DICTIONARY_FILE}`);
+                setCurrentSourceLabel('Base por defecto (cargada en memoria)');
             };
 
             const parseDictionary = (text) => {
@@ -832,30 +837,6 @@
                 );
             }
 
-
-            // 3.5 DUAL N-WORD
-            if (screen === 'dual-nword') {
-                return (
-                    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-                        <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                            <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-3">
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900">Dual N-Word</h2>
-                                    <p className="text-xs text-slate-600">Minijuego cargado desde {DUAL_NWORD_FILE}</p>
-                                </div>
-                                <button onClick={() => setScreen('menu')} className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-slate-700">
-                                    Volver al menú
-                                </button>
-                            </div>
-                            <iframe
-                                src={DUAL_NWORD_FILE}
-                                title="Dual N-Word"
-                                className="w-full h-[75vh] bg-white"
-                            />
-                        </div>
-                    </div>
-                );
-            }
 
             // 3.6 DEFINITION GAME
             if (screen === 'definition-game') {
