@@ -76,28 +76,6 @@
                 .replace(/\s+/g, ' ')
                 .trim();
         
-        // Generador de distracción para tarea dual (contar hacia atrás)
-        const generateDistraction = () => {
-            const start = Math.floor(Math.random() * 100) + 100;
-            const step = [3, 7][Math.floor(Math.random() * 2)];
-            return `Cuenta hacia atrás desde ${start} en pasos de ${step}`;
-        };
-
-        // Contador aproximado de fonemas para español
-        const countPhonemes = (word) => {
-            word = word.toLowerCase().replace(/[^a-záéíóúñ]/g, '');
-            let phonemes = 0;
-            for (let i = 0; i < word.length; i++) {
-                if (i < word.length - 1 && ['ch', 'll', 'rr'].includes(word.substring(i, i + 2))) {
-                    phonemes++;
-                    i++;
-                } else if (word[i] !== 'h' || (i > 0 && word[i - 1] === 'c')) {
-                    phonemes++;
-                }
-            }
-            return phonemes;
-        };
-
         const DEFAULT_DICTIONARY_FILE = 'diccionario personal.txt';
 
         const App = () => {
@@ -116,10 +94,7 @@
             const [transitionMode, setTransitionMode] = useState('auto'); // 'auto' | 'manual'
             const [intervalTime, setIntervalTime] = useState(3000);
             const [isReverseInput, setIsReverseInput] = useState(false);
-            const [isInterferenceEnabled, setIsInterferenceEnabled] = useState(false); // Tarea dual
             const [revealMode, setRevealMode] = useState('progressive'); // 'full' | 'progressive'
-            const [isPhonemicAnalysis, setIsPhonemicAnalysis] = useState(false);
-            const [isSemanticChain, setIsSemanticChain] = useState(false);
             
             // Estado Juego N-Back
             const [round, setRound] = useState(1);
@@ -130,16 +105,12 @@
             // Estado Showing
             const [showIndex, setShowIndex] = useState(0);
             const [currentCard, setCurrentCard] = useState(null);
-            const [distractionText, setDistractionText] = useState("");
 
             // Estado Input
             const [inputIndex, setInputIndex] = useState(0);
             const [userInput, setUserInput] = useState("");
             const [feedback, setFeedback] = useState(null);
             const [hintLevel, setHintLevel] = useState(0); // 0: oculto, 1: 33%, 2: 66%, 3: 100%
-            const [phonemeInput, setPhonemeInput] = useState("");
-            const [phonemeFeedback, setPhonemeFeedback] = useState(null);
-            const [chainInput, setChainInput] = useState("");
 
             // Estado Minijuego de Definiciones
             const [definitionGameIndex, setDefinitionGameIndex] = useState(0);
@@ -158,7 +129,7 @@
 
             // --- EFECTOS ---
             useEffect(() => {
-                if (feedback === 'correct' && !isPhonemicAnalysis) {
+                if (feedback === 'correct') {
                     const timer = setTimeout(nextInput, 1200);
                     return () => clearTimeout(timer);
                 } else if (feedback === 'incorrect') {
@@ -390,9 +361,6 @@
                 setUserInput("");
                 setFeedback(null);
                 setHintLevel(revealMode === 'full' ? 3 : 0);
-                setPhonemeInput("");
-                setPhonemeFeedback(null);
-                setChainInput("");
                 setCurrentRoundSequence([...sequenceIndices]);
             };
 
@@ -412,11 +380,6 @@
                 const itemIndex = currentRoundSequence[showIndex];
                 setCurrentCard(dictionary[itemIndex]);
                 
-                // Generar distracción si está activa
-                if (isInterferenceEnabled) {
-                    setDistractionText(generateDistraction());
-                }
-
                 // Si es AUTOMÁTICO, programar el siguiente
                 if (transitionMode === 'auto') {
                     const timer = setTimeout(() => {
@@ -425,11 +388,10 @@
                     return () => clearTimeout(timer);
                 }
                 
-            }, [screen, showIndex, currentRoundSequence, transitionMode, intervalTime, dictionary, isInterferenceEnabled]);
+            }, [screen, showIndex, currentRoundSequence, transitionMode, intervalTime, dictionary]);
 
             const handleNextCard = () => {
                 setCurrentCard(null);
-                setDistractionText("");
                 // Pequeño delay visual
                 setTimeout(() => setShowIndex(prev => prev + 1), 150);
             };
@@ -467,18 +429,6 @@
                 }
             };
 
-            const checkPhoneme = () => {
-                const target = countPhonemes(getTargetTerm());
-                const userNum = parseInt(phonemeInput);
-                if (userNum === target) {
-                    setPhonemeFeedback('correct');
-                    setTimeout(nextInput, 1200);
-                } else {
-                    setPhonemeFeedback('incorrect');
-                    setTimeout(nextInput, 2500);
-                }
-            };
-
             const nextInput = () => {
                 setFeedback(null);
                 setPhonemeInput("");
@@ -488,11 +438,7 @@
 
                 if (inputIndex + 1 >= currentRoundSequence.length) {
                     setScore(prev => prev + round * nBack);
-                    if (isSemanticChain) {
-                        setScreen('semantic');
-                    } else {
-                        prepareNextRound();
-                    }
+                    prepareNextRound();
                 } else {
                     setInputIndex(prev => prev + 1);
                 }
@@ -710,54 +656,6 @@
                                         </div>
                                         <input type="checkbox" className="hidden" checked={isReverseInput} onChange={() => setIsReverseInput(!isReverseInput)} />
                                     </label>
-
-                                    <label className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:border-indigo-300 transition group">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition ${isInterferenceEnabled ? 'bg-pink-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                                                <Zap size={18} />
-                                            </div>
-                                            <div>
-                                                <span className="font-bold text-slate-900 block group-hover:text-pink-700 transition">Tarea Dual (Interferencia)</span>
-                                                <span className="text-xs text-slate-800">Simula carga cognitiva con conteo hacia atrás</span>
-                                            </div>
-                                        </div>
-                                        <div className={`w-6 h-6 rounded border flex items-center justify-center transition ${isInterferenceEnabled ? 'bg-pink-600 border-pink-600' : 'bg-white border-slate-300'}`}>
-                                            {isInterferenceEnabled && <Check size={14} className="text-white" />}
-                                        </div>
-                                        <input type="checkbox" className="hidden" checked={isInterferenceEnabled} onChange={() => setIsInterferenceEnabled(!isInterferenceEnabled)} />
-                                    </label>
-
-                                    <label className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:border-indigo-300 transition group">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition ${isPhonemicAnalysis ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                                                <Zap size={18} />
-                                            </div>
-                                            <div>
-                                                <span className="font-bold text-slate-900 block group-hover:text-green-700 transition">Análisis Fonémico</span>
-                                                <span className="text-xs text-slate-800">Cuenta los fonemas de cada palabra correcta</span>
-                                            </div>
-                                        </div>
-                                        <div className={`w-6 h-6 rounded border flex items-center justify-center transition ${isPhonemicAnalysis ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300'}`}>
-                                            {isPhonemicAnalysis && <Check size={14} className="text-white" />}
-                                        </div>
-                                        <input type="checkbox" className="hidden" checked={isPhonemicAnalysis} onChange={() => setIsPhonemicAnalysis(!isPhonemicAnalysis)} />
-                                    </label>
-
-                                    <label className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:border-indigo-300 transition group">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition ${isSemanticChain ? 'bg-yellow-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                                                <ArrowRight size={18} />
-                                            </div>
-                                            <div>
-                                                <span className="font-bold text-slate-900 block group-hover:text-yellow-700 transition">Cadena Semántica</span>
-                                                <span className="text-xs text-slate-800">Crea conexiones entre palabras consecutivas</span>
-                                            </div>
-                                        </div>
-                                        <div className={`w-6 h-6 rounded border flex items-center justify-center transition ${isSemanticChain ? 'bg-yellow-600 border-yellow-600' : 'bg-white border-slate-300'}`}>
-                                            {isSemanticChain && <Check size={14} className="text-white" />}
-                                        </div>
-                                        <input type="checkbox" className="hidden" checked={isSemanticChain} onChange={() => setIsSemanticChain(!isSemanticChain)} />
-                                    </label>
                                 </div>
                                 )}
 
@@ -790,15 +688,6 @@
                                     
                                     {/* Definición sutil para reforzar contexto (opcional, aquí la mostramos pequeña) */}
                                     <p className="text-slate-700 text-sm italic mt-4 opacity-70">Concentrate en la palabra</p>
-
-                                    {/* Interferencia Visual (Overlay) */}
-                                    {isInterferenceEnabled && distractionText && (
-                                        <div className="absolute inset-0 flex items-end justify-center pb-4 pointer-events-none opacity-40">
-                                            <span className="bg-pink-100 text-pink-800 px-4 py-1 rounded-full font-mono text-sm font-bold animate-pulse">
-                                                Mentalmente: {distractionText}
-                                            </span>
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* Botón Manual si aplica */}
@@ -918,30 +807,6 @@
                                             {isReverseInput && <span className="block text-xs font-normal opacity-75">(Inverso: {reverseString(getTargetTerm())})</span>}
                                         </div>
                                     )}
-
-                                    {/* Análisis Fonémico */}
-                                    {feedback === 'correct' && isPhonemicAnalysis && (
-                                        <div className="mt-6 p-4 bg-green-50 rounded-xl w-full">
-                                            <p className="text-green-800 font-bold mb-2">Análisis Fonémico: ¿Cuántos fonemas tiene "{getTargetTerm()}"?</p>
-                                            {phonemeFeedback ? (
-                                                <p className={`font-bold ${phonemeFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {phonemeFeedback === 'correct' ? '¡Correcto!' : `Incorrecto. Son ${countPhonemes(getTargetTerm())} fonemas.`}
-                                                </p>
-                                            ) : (
-                                                <div className="flex justify-center gap-2">
-                                                    <input 
-                                                        type="number"
-                                                        value={phonemeInput}
-                                                        onChange={e => setPhonemeInput(e.target.value)}
-                                                        onKeyDown={e => e.key === 'Enter' && checkPhoneme()}
-                                                        className="w-20 text-center border border-green-200 rounded-lg p-2"
-                                                        autoFocus
-                                                    />
-                                                    <button onClick={checkPhoneme} className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold">
-                                                        Confirmar
-                                                    </button>
-                                                </div>
-                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -951,27 +816,6 @@
                 );
             }
 
-            // 3.5 SEMANTIC CHAIN
-            if (screen === 'semantic') {
-                return (
-                    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-                        <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl p-8">
-                            <h2 className="text-2xl font-bold mb-4 text-center text-slate-900">Cadena Semántica</h2>
-                            <p className="text-slate-800 mb-4 text-center">Crea una conexión conceptual entre las palabras de esta ronda:</p>
-                            <p className="font-mono text-center mb-6 text-slate-900">{currentRoundSequence.map(idx => dictionary[idx].term).join(' → ')}</p>
-                            <textarea 
-                                value={chainInput}
-                                onChange={e => setChainInput(e.target.value)}
-                                className="w-full h-24 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                                placeholder="Ej: El cerebro usa sinapsis para conectar ideas..."
-                            />
-                            <button onClick={prepareNextRound} className="w-full mt-4 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition shadow-md">
-                                Continuar a Siguiente Ronda
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
 
             // 3.6 DEFINITION GAME
             if (screen === 'definition-game') {
