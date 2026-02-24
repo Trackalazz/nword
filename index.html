@@ -67,6 +67,14 @@
 
         // --- UTILIDADES ---
         const reverseString = (str) => str.split('').reverse().join('');
+        const normalizeText = (str) =>
+            str
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
         
         // Generador de distracción para tarea dual (contar hacia atrás)
         const generateDistraction = () => {
@@ -301,8 +309,14 @@
             // Manejar respuesta del minijuego de definiciones
             const checkDefinition = () => {
                 const currentWord = definitionGameSequence[definitionGameIndex];
-                const userDef = definitionInput.trim().toLowerCase();
-                const correctDef = currentWord.def.toLowerCase();
+                const userDef = normalizeText(definitionInput);
+                const correctDef = normalizeText(currentWord.def);
+
+                if (!userDef) {
+                    setDefinitionFeedback('incorrect');
+                    setTimeout(() => nextDefinition(), 2000);
+                    return;
+                }
                 
                 // Comparación flexible (acepta si contiene palabras clave)
                 const userWords = userDef.split(/\s+/);
@@ -312,8 +326,12 @@
                 const matchCount = correctWords.filter(cw => 
                     userWords.some(uw => uw.includes(cw) || cw.includes(uw))
                 ).length;
+
+                const keywordThreshold = correctWords.length === 0
+                    ? false
+                    : matchCount >= Math.ceil(correctWords.length * 0.4);
                 
-                const isCorrect = matchCount >= Math.ceil(correctWords.length * 0.4) || 
+                const isCorrect = keywordThreshold || 
                                  userDef === correctDef ||
                                  correctDef.includes(userDef) ||
                                  userDef.includes(correctDef);
@@ -552,6 +570,7 @@
                                     <p className="text-xs text-slate-500 mb-2">{currentSourceLabel}</p>
                                     <input type="file" accept=".txt,.rtf,.pdf,.docx" ref={fileInputRef} className="hidden" onChange={handleFileUpload}/>
                                     <textarea 
+                                        aria-label="Diccionario de palabras y definiciones"
                                         value={rawText}
                                         onChange={(e) => setRawText(e.target.value)}
                                         className="w-full h-32 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
@@ -745,6 +764,7 @@
                                 <button onClick={startGame} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg flex justify-center items-center gap-2">
                                     <Play size={20} /> {gameMode === 'definitions' ? 'Comenzar Minijuego' : 'Comenzar Sesión'}
                                 </button>
+                                <p className="text-xs text-slate-500 mt-3 text-center">Consejo: usa frases cortas y definiciones consistentes para mejorar la precisión del entrenamiento.</p>
 
                             </div>
                         </div>
@@ -977,6 +997,11 @@
                             {definitionPhase === 'viewing' && timeRemaining > 0 && (
                                 <p className="text-indigo-600 font-bold text-lg mt-2">{timeRemaining}s</p>
                             )}
+                            {definitionPhase === 'viewing' && (
+                                <div className="mt-3 w-full bg-slate-200 rounded-full h-2 overflow-hidden" role="progressbar" aria-label="Tiempo restante de visualización" aria-valuemin="0" aria-valuemax={definitionViewTime} aria-valuenow={Math.max(0, definitionViewTime - (currentTime - definitionViewStartTime || 0))}>
+                                    <div className="h-2 bg-indigo-500 transition-all" style={{ width: `${Math.max(0, ((definitionViewTime - (currentTime - definitionViewStartTime || 0)) / definitionViewTime) * 100)}%` }}></div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="w-full max-w-3xl">
@@ -991,7 +1016,7 @@
                                         </div>
                                         
                                         {/* Lista acumulativa de palabras con sus definiciones */}
-                                        <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                                             {accumulatedWords.map((word, idx) => (
                                                 <div key={idx} className={`p-4 rounded-xl border-2 ${idx === definitionGameIndex ? 'bg-indigo-50 border-indigo-300' : 'bg-slate-50 border-slate-200'}`}>
                                                     <div className="flex items-start justify-between gap-4">
@@ -1014,7 +1039,7 @@
                                             <h2 className="text-2xl font-bold text-slate-900 text-center mb-4">Escribe la definición de la palabra nueva</h2>
                                             
                                             {/* Lista acumulativa - todas con definición excepto la actual */}
-                                            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                                            <div className="space-y-3 max-h-[32vh] overflow-y-auto pr-1">
                                                 {accumulatedWords.map((word, idx) => (
                                                     <div key={idx} className={`p-3 rounded-lg border ${idx === definitionGameIndex ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
                                                         <div className="flex items-start justify-between gap-3">
@@ -1049,6 +1074,7 @@
                                         {/* Input */}
                                         <div className="p-6">
                                             <textarea
+                                                aria-label="Escribe la definición de la palabra actual"
                                                 autoFocus={!definitionFeedback}
                                                 disabled={definitionFeedback !== null}
                                                 value={definitionInput}
@@ -1065,7 +1091,7 @@
                                         {/* Acciones y Feedback */}
                                         <div className="bg-slate-50 p-6 border-t border-slate-100">
                                             {!definitionFeedback && (
-                                                <div className="flex gap-3">
+                                                <div className="flex flex-wrap gap-3">
                                                     <button 
                                                         onClick={() => setDefinitionShowHint(!definitionShowHint)}
                                                         className="bg-white border-2 border-slate-300 text-slate-700 px-4 py-3 rounded-xl text-sm font-bold hover:bg-slate-100 transition flex items-center gap-2"
@@ -1073,13 +1099,23 @@
                                                         <Eye size={18} /> {definitionShowHint ? 'Ocultar' : 'Mostrar'} Pista
                                                     </button>
                                                     <button 
-                                                        onClick={checkDefinition}
-                                                        className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-indigo-700 transition shadow-md"
+                                                        onClick={() => {
+                                                            setDefinitionFeedback('incorrect');
+                                                            setTimeout(() => nextDefinition(), 1200);
+                                                        }}
+                                                        className="bg-amber-100 text-amber-700 px-5 py-3 rounded-xl text-sm font-bold hover:bg-amber-200 transition"
                                                     >
-                                                        Confirmar Definición
+                                                        Saltar palabra
+                                                    </button>
+                                                    <button 
+                                                        onClick={checkDefinition}
+                                                        className="flex-1 min-w-[220px] bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-indigo-700 transition shadow-md"
+                                                    >
+                                                        Confirmar Definición (Ctrl+Enter)
                                                     </button>
                                                 </div>
                                             )}
+                                            {!definitionFeedback && <p className="text-center text-xs text-slate-500 mt-3">Atajo: <kbd className="px-1.5 py-0.5 bg-slate-100 rounded border">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-slate-100 rounded border">Enter</kbd>.</p>}
 
                                             {isError && (
                                                 <div className="animate-fade-in">
