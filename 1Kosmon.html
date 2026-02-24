@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CosmoN-back Pro - Custom & Stats</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        :root {
+            --bg-dark: #0a0e17;
+            --accent-color: #ffcc80; 
+            --match-left: #ff7675;   
+            --match-center: #a29bfe; 
+            --match-right: #74b9ff;  
+            --error-color: #e74c3c;
+            --success-color: #2ecc71;
+            --card-bg: rgba(25, 25, 45, 0.95);
+            --text-main: #f0f0f5;
+            --text-dim: #a0a0b5;
+            --nav-bg: rgba(15, 15, 30, 0.98);
+        }
+        
+        body {
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-main);
+            overflow-x: hidden;
+            padding: env(safe-area-inset-top) 0 calc(90px + env(safe-area-inset-bottom)) 0;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Overlay de Cuenta Atrás */
+        .countdown-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .count-number {
+            font-size: 6rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            animation: pulseCount 0.8s infinite;
+        }
+
+        /* Navegación */
+        .floating-nav {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 450px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            padding: 10px;
+            z-index: 1000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+        
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            transition: 0.3s;
+        }
+        
+        .nav-btn i { font-size: 1.2rem; }
+        .nav-btn.active { color: var(--accent-color); }
+
+        /* Estructura Principal */
+        .section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .section.active { display: flex; }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: 25px;
+            padding: 20px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 15px;
+        }
+
+        /* Input de Archivo Personalizado */
+        .file-upload-container {
+            border: 1px dashed rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .file-upload-container:hover { background: rgba(255,255,255,0.05); }
+        .file-upload-container i { font-size: 1.5rem; color: var(--accent-color); margin-bottom: 5px; }
+        
+        #fileNameDisplay {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--success-color);
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Grid de Opciones Avanzado */
+        .options-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 20px 0;
+        }
+
+        .opt-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            flex: 1;
+            min-width: 45px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .opt-btn.active {
+            background: var(--accent-color);
+            color: #000;
+            font-weight: bold;
+            border-color: var(--accent-color);
+        }
+
+        /* Área de Juego y Estadísticas Mejorada */
+        .game-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; /* 3 Columnas ahora */
+            gap: 8px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 5px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .stat-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.1rem; font-weight: bold; }
+        
+        /* Colores para stats */
+        .stat-hits { color: var(--success-color); }
+        .stat-miss { color: var(--error-color); }
+        .stat-n { color: var(--match-right); }
+
+        /* Display Flexible */
+        .display-area {
+            display: grid;
+            gap: 10px;
+            width: 100%;
+            margin: 15px 0;
+            grid-template-columns: 1fr; 
+        }
+
+        .display-area.dual { grid-template-columns: 1fr 1fr; }
+        .display-area.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+        .word-box {
+            background: rgba(255, 255, 255, 0.04);
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            text-align: center;
+            padding: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .word-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #fff;
+            transition: transform 0.3s;
+            word-break: break-word;
+        }
+
+        .display-area.triple .word-text { font-size: 0.9rem; }
+
+        /* Controles */
+        .controls-grid {
+            display: grid;
+            gap: 10px;
+            width: 100%;
+            grid-template-columns: 1fr;
+        }
+
+        .controls-grid.dual { grid-template-columns: 1fr 1fr; }
+        .controls-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+        .game-btn {
+            padding: 15px 5px;
+            border-radius: 16px;
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-l { background: var(--match-left); }
+        .btn-c { background: var(--match-center); }
+        .btn-r { background: var(--match-right); }
+
+        .btn-main {
+            background: var(--accent-color);
+            color: #000;
+            padding: 20px;
+            border-radius: 50px;
+            border: none;
+            font-weight: 800;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 1.1rem;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseCount { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+        
+        .pulse-correct { border-color: #2ecc71 !important; box-shadow: inset 0 0 20px rgba(46, 204, 113, 0.3); }
+        .pulse-wrong { border-color: #e74c3c !important; box-shadow: inset 0 0 20px rgba(231, 76, 60, 0.3); }
+
+        html { scroll-behavior: smooth; }
+        @media (max-width: 360px) {
+            .display-area.triple .word-box { height: 120px; }
+            .game-btn { font-size: 0.75rem; padding: 10px 2px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="countdown-overlay" id="countdownOverlay">
+        <div style="font-size: 1.5rem; color: #fff; margin-bottom: 20px;">PREPÁRATE</div>
+        <div class="count-number" id="countNum">3</div>
+    </div>
+
+    <nav class="floating-nav">
+        <button class="nav-btn active" onclick="showSection('config-section', this)">
+            <i class="fas fa-sliders-h"></i><span>Ajustes</span>
+        </button>
+        <button class="nav-btn" onclick="showSection('game-section', this)">
+            <i class="fas fa-brain"></i><span>Juego</span>
+        </button>
+        <button class="nav-btn" onclick="showSection('results-section', this)">
+            <i class="fas fa-trophy"></i><span>Récord</span>
+        </button>
+        <button class="nav-btn" onclick="showSection('instructions-section', this)">
+            <i class="fas fa-book-open"></i><span>Guía</span>
+        </button>
+    </nav>
+    
+    <section id="config-section" class="section active">
+        <h1 class="section-title">CosmoN-back <span style="font-size:0.5em; vertical-align:super; color:var(--text-dim)">PRO</span></h1>
+        
+        <div class="panel">
+            <label style="font-weight:bold; color:var(--accent-color)">Nivel de Memoria (N)</label>
+            <div class="options-grid">
+                <button class="opt-btn active" onclick="setN(1, this)">1</button>
+                <button class="opt-btn" onclick="setN(2, this)">2</button>
+                <button class="opt-btn" onclick="setN(3, this)">3</button>
+                <button class="opt-btn" onclick="setN(4, this)">4</button>
+                <button class="opt-btn" onclick="setN(5, this)">5</button>
+                <button class="opt-btn" onclick="setN(6, this)">6</button>
+                <button class="opt-btn" onclick="setN(7, this)">7</button>
+                <button class="opt-btn" onclick="setN(8, this)">8</button>
+            </div>
+
+            <label style="font-weight:bold; color:var(--accent-color)">Cargar Palabras (.txt)</label>
+            <div class="file-upload-container" onclick="document.getElementById('customFileInput').click()">
+                <i class="fas fa-file-upload"></i>
+                <div>Toca para cargar archivo</div>
+                <span id="fileNameDisplay">Usando lista por defecto</span>
+                <input type="file" id="customFileInput" accept=".txt" style="display: none;" onchange="handleFileUpload(this)">
+            </div>
+            <div style="margin-bottom: 20px;"></div>
+
+            <label style="font-weight:bold; color:var(--accent-color)">Modo de Desafío</label>
+            <div class="options-grid">
+                <button class="opt-btn active" onclick="setMode('simple', this)">Simple</button>
+                <button class="opt-btn" onclick="setMode('dual', this)">Dual</button>
+                <button class="opt-btn" onclick="setMode('triple', this)">Triple</button>
+            </div>
+
+            <label style="font-weight:bold; color:var(--accent-color)">Interferencia (Stroop)</label>
+            <div class="options-grid">
+                <button class="opt-btn active" onclick="setInterference(false, this)">Apagado</button>
+                <button class="opt-btn" onclick="setInterference(true, this)">Activado</button>
+            </div>
+
+            <label style="font-weight:bold; color:var(--accent-color)">Velocidad</label>
+            <div class="options-grid">
+                <button class="opt-btn" onclick="setSpeed(3000, this)">Lento</button>
+                <button class="opt-btn active" onclick="setSpeed(2000, this)">Normal</button>
+                <button class="opt-btn" onclick="setSpeed(1500, this)">Rápido</button>
+            </div>
+        </div>
+        <button class="btn-main" onclick="initGameSequence()">INICIAR ENTRENAMIENTO</button>
+    </section>
+    
+    <section id="game-section" class="section">
+        <div class="game-stats">
+            <div class="stat-card">
+                <div class="stat-label">ACIERTOS</div>
+                <div class="stat-val stat-hits" id="scoreDisplay">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">FALLOS</div>
+                <div class="stat-val stat-miss" id="missDisplay">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">N-BACK</div>
+                <div class="stat-val stat-n" id="nDisplay">1</div>
+            </div>
+        </div>
+        
+        <div class="display-area" id="displayArea">
+            <div class="word-box" id="boxLeft">
+                <span class="word-text" id="wordLeft">...</span>
+            </div>
+            <div class="word-box" id="boxCenter" style="display: none;">
+                <span class="word-text" id="wordCenter">...</span>
+            </div>
+            <div class="word-box" id="boxRight" style="display: none;">
+                <span class="word-text" id="wordRight">...</span>
+            </div>
+        </div>
+        
+        <div class="controls-grid" id="controlsGrid">
+            <button class="game-btn btn-l" id="matchL" onclick="handleInput('left')">IZQ (A)</button>
+            <button class="game-btn btn-c" id="matchC" onclick="handleInput('center')" style="display: none;">CEN (S)</button>
+            <button class="game-btn btn-r" id="matchR" onclick="handleInput('right')" style="display: none;">DER (L)</button>
+        </div>
+    </section>
+
+    <section id="results-section" class="section">
+        <div class="panel" style="text-align: center;">
+            <h2 style="color: var(--accent-color)">Entrenamiento Completado</h2>
+            <div style="margin: 20px 0; text-align: left; padding: 0 20px;">
+                <p style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1)">Precisión: <span id="resAcc" style="float:right; font-weight:bold; color:var(--accent-color)">0%</span></p>
+                <p style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1)">Aciertos: <span id="resHits" style="float:right; color:var(--success-color)">0</span></p>
+                <p style="padding: 10px 0;">Errores: <span id="resMiss" style="float:right; color:var(--error-color)">0</span></p>
+            </div>
+            <button class="btn-main" onclick="showSection('config-section')">REPETIR</button>
+        </div>
+    </section>
+
+    <section id="instructions-section" class="section">
+        <div class="panel">
+            <h3 style="color: var(--accent-color); margin-bottom: 10px;">Carga Personalizada</h3>
+            <p style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 15px;">
+                Carga un archivo <strong>.txt</strong> con palabras separadas por comas o saltos de línea para entrenar vocabulario específico.
+            </p>
+            <h3 style="color: var(--accent-color); margin-bottom: 10px;">Modos de Juego</h3>
+            <ul style="padding-left: 20px; color: var(--text-dim); font-size: 0.9rem; line-height: 1.6;">
+                <li><strong>Simple:</strong> 1 palabra. Coincidencia N-back.</li>
+                <li><strong>Dual/Triple:</strong> Varias columnas simultáneas e independientes.</li>
+            </ul>
+        </div>
+    </section>
+
+    <script>
+        const defaultList = ["Luminaria", "Peristilo", "Floema", "Eclisa", "Liza", "Ulema", "Gopi", "Sari", "Atiplar", "Marajá", "Certitud", "Hozar", "Ciar", "Jalde", "Rema", "Espita", "Ripio", "Atezar", "Rabí", "Mamía", "Cáfila", "Impasse", "Veranda", "Rafal", "Mónada", "Fisga", "Pugnaz", "Ayuso", "Airón", "Yunto", "Estro"];
+        
+        let wordList = [...defaultList];
+        const chaosColors = ["#ff7675", "#74b9ff", "#55efc4", "#a29bfe", "#ffeaa7", "#ffffff"];
+
+        let n = 1;
+        let mode = 'simple'; 
+        let speed = 2000;
+        let interference = false;
+        let gameActive = false;
+        let timer;
+        
+        let seqL = [], seqC = [], seqR = [];
+        let index = 0;
+        let hits = 0, misses = 0;
+
+        // --- GESTIÓN DE ARCHIVOS ---
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                // Dividir por saltos de línea, comas o espacios
+                const rawWords = text.split(/[\n,]+/).map(w => w.trim()).filter(w => w.length > 0);
+                
+                if(rawWords.length < 10) {
+                    alert("El archivo contiene pocas palabras. Se necesitan al menos 10. Se usará la lista por defecto.");
+                    document.getElementById('fileNameDisplay').textContent = "Error: Mínimo 10 palabras";
+                    document.getElementById('fileNameDisplay').style.color = "#e74c3c";
+                    wordList = [...defaultList];
+                } else {
+                    wordList = rawWords;
+                    document.getElementById('fileNameDisplay').textContent = `Cargado: ${file.name} (${wordList.length} palabras)`;
+                    document.getElementById('fileNameDisplay').style.color = "#2ecc71";
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showSection(id, btn) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(btn) {
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        }
+
+        // Setters
+        function setN(val, btn) { n = val; updateBtns(btn); }
+        function setMode(val, btn) { mode = val; updateBtns(btn); }
+        function setSpeed(val, btn) { speed = val; updateBtns(btn); }
+        function setInterference(val, btn) { interference = val; updateBtns(btn); }
+
+        function updateBtns(btn) {
+            btn.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // --- LÓGICA DEL JUEGO ---
+        function initGameSequence() {
+            const overlay = document.getElementById('countdownOverlay');
+            const numDisplay = document.getElementById('countNum');
+            let count = 3;
+            
+            overlay.style.display = 'flex';
+            numDisplay.textContent = count;
+            
+            showSection('game-section');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.nav-btn')[1].classList.add('active');
+
+            const intv = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    numDisplay.textContent = count;
+                    numDisplay.style.animation = 'none';
+                    numDisplay.offsetHeight; 
+                    numDisplay.style.animation = 'pulseCount 0.8s infinite';
+                } else {
+                    clearInterval(intv);
+                    overlay.style.display = 'none';
+                    startGame();
+                }
+            }, 1000);
+        }
+
+        function startGame() {
+            gameActive = true;
+            seqL = []; seqC = []; seqR = [];
+            index = 0; hits = 0; misses = 0;
+            
+            document.getElementById('scoreDisplay').textContent = "0";
+            document.getElementById('missDisplay').textContent = "0";
+            document.getElementById('nDisplay').textContent = n;
+
+            setupUI();
+
+            const len = 20 + (n * 2);
+            for(let i=0; i<len; i++) {
+                seqL.push(generateWord(seqL, i));
+                if(mode === 'dual' || mode === 'triple') seqR.push(generateWord(seqR, i));
+                if(mode === 'triple') seqC.push(generateWord(seqC, i));
+            }
+
+            runStep();
+        }
+
+        function setupUI() {
+            const da = document.getElementById('displayArea');
+            const cg = document.getElementById('controlsGrid');
+            const bR = document.getElementById('boxRight');
+            const bC = document.getElementById('boxCenter');
+            const btnR = document.getElementById('matchR');
+            const btnC = document.getElementById('matchC');
+
+            da.className = 'display-area';
+            cg.className = 'controls-grid';
+            
+            bR.style.display = 'none';
+            bC.style.display = 'none';
+            btnR.style.display = 'none';
+            btnC.style.display = 'none';
+
+            if (mode === 'dual') {
+                da.classList.add('dual');
+                cg.classList.add('dual');
+                bR.style.display = 'flex';
+                btnR.style.display = 'block';
+            } else if (mode === 'triple') {
+                da.classList.add('triple');
+                cg.classList.add('triple');
+                bC.style.display = 'flex';
+                bR.style.display = 'flex';
+                btnC.style.display = 'block';
+                btnR.style.display = 'block';
+            }
+        }
+
+        function generateWord(seq, i) {
+            if(i >= n && Math.random() < 0.35) return seq[i - n];
+            return wordList[Math.floor(Math.random() * wordList.length)];
+        }
+
+        function runStep() {
+            if(index >= seqL.length) { endGame(); return; }
+
+            updateWord('wordLeft', seqL[index], 'boxLeft');
+            if(mode !== 'simple') updateWord('wordRight', seqR[index], 'boxRight');
+            if(mode === 'triple') updateWord('wordCenter', seqC[index], 'boxCenter');
+
+            index++;
+            timer = setTimeout(runStep, speed);
+        }
+
+        function updateWord(id, text, boxId) {
+            const el = document.getElementById(id);
+            const box = document.getElementById(boxId);
+            
+            el.textContent = text;
+            
+            if (interference) {
+                const randomColor = chaosColors[Math.floor(Math.random() * chaosColors.length)];
+                const randomScale = 0.9 + Math.random() * 0.3;
+                const randomRot = (Math.random() * 10) - 5; 
+                
+                el.style.color = randomColor;
+                el.style.transform = `scale(${randomScale}) rotate(${randomRot}deg)`;
+                el.style.fontFamily = Math.random() > 0.5 ? 'monospace' : 'inherit';
+            } else {
+                el.style.color = '#fff';
+                el.style.transform = 'none';
+                el.style.fontFamily = 'inherit';
+            }
+
+            box.style.animation = 'none';
+            box.offsetHeight;
+            box.style.animation = 'fadeIn 0.2s ease';
+        }
+
+        function handleInput(pos) {
+            if(!gameActive || index <= n) return;
+
+            let seq, boxId;
+            if (pos === 'left') { seq = seqL; boxId = 'boxLeft'; }
+            else if (pos === 'right') { seq = seqR; boxId = 'boxRight'; }
+            else if (pos === 'center') { seq = seqC; boxId = 'boxCenter'; }
+
+            const isMatch = seq[index-1] === seq[index-1-n];
+
+            if(isMatch) {
+                hits++;
+                document.getElementById('scoreDisplay').textContent = hits;
+                triggerVisual(boxId, 'pulse-correct');
+            } else {
+                misses++;
+                document.getElementById('missDisplay').textContent = misses;
+                triggerVisual(boxId, 'pulse-wrong');
+            }
+        }
+
+        function triggerVisual(id, className) {
+            const el = document.getElementById(id);
+            el.classList.add(className);
+            setTimeout(() => el.classList.remove(className), 400);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearTimeout(timer);
+            const total = hits + misses || 1;
+            document.getElementById('resAcc').textContent = Math.round((hits/total)*100) + "%";
+            document.getElementById('resHits').textContent = hits;
+            document.getElementById('resMiss').textContent = misses;
+            showSection('results-section');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(!gameActive) return;
+            const k = e.key.toLowerCase();
+            if(k === 'a') handleInput('left');
+            if(k === 's') { if(mode==='triple') handleInput('center'); }
+            if(k === 'l') { if(mode!=='simple') handleInput('right'); }
+        });
+
+        function initParticles() {
+            const c = document.getElementById('particles');
+            for(let i=0; i<40; i++) {
+                const p = document.createElement('div');
+                p.style.cssText = `position:absolute;width:2px;height:2px;background:#fff;opacity:${Math.random()};top:${Math.random()*100}%;left:${Math.random()*100}%`;
+                c.appendChild(p);
+            }
+        }
+        initParticles();
+    </script>
+</body>
+</html>

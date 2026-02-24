@@ -76,12 +76,15 @@
                 .replace(/\s+/g, ' ')
                 .trim();
         
+        const DUAL_NWORD_FILE = '1kosmon.html';
+        const DUAL_NWORD_FILE = '1Kosmon.html';
+
         const DEFAULT_DICTIONARY_FILE = 'diccionario personal.txt';
 
         const App = () => {
             // --- ESTADOS ---
             const [screen, setScreen] = useState('menu');
-            const [gameMode, setGameMode] = useState('nback'); // 'nback' | 'definitions'
+            const [gameMode, setGameMode] = useState('nback'); // 'nback' | 'definitions' | 'dual-nword'
             
             // Datos
             const [rawText, setRawText] = useState("");
@@ -241,6 +244,11 @@
 
             // Iniciar Juego Global
             const startGame = () => {
+                if (gameMode === 'dual-nword') {
+                    setScreen('dual-nword');
+                    return;
+                }
+
                 const parsed = parseDictionary(rawText);
                 if (parsed.length < 1) {
                     alert("Por favor, carga palabras. Formato: 'Palabra: Definición'");
@@ -250,6 +258,8 @@
                 
                 if (gameMode === 'definitions') {
                     startDefinitionGame(parsed);
+                } else if (gameMode === 'dual-nword') {
+                    setScreen('dual-nword');
                 } else {
                     setRound(1);
                     setScore(0);
@@ -542,6 +552,13 @@
                                             <Book size={18} />
                                             Definiciones
                                         </button>
+                                        <button 
+                                            onClick={() => setGameMode('dual-nword')}
+                                            className={`flex-1 py-3 px-4 text-sm rounded-md font-medium transition flex items-center justify-center gap-2 ${gameMode === 'dual-nword' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-700 hover:text-slate-900'}`}
+                                        >
+                                            <Zap size={18} />
+                                            Dual N-Word
+                                        </button>
                                     </div>
                                 </div>
 
@@ -660,7 +677,7 @@
                                 )}
 
                                 <button onClick={startGame} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg flex justify-center items-center gap-2">
-                                    <Play size={20} /> {gameMode === 'definitions' ? 'Comenzar Minijuego' : 'Comenzar Sesión'}
+                                    <Play size={20} /> {gameMode === 'definitions' || gameMode === 'dual-nword' ? 'Comenzar Minijuego' : 'Comenzar Sesión'}
                                 </button>
                                 <p className="text-xs text-slate-500 mt-3 text-center">Consejo: usa frases cortas y definiciones consistentes para mejorar la precisión del entrenamiento.</p>
 
@@ -816,6 +833,30 @@
                 );
             }
 
+
+            // 3.5 DUAL N-WORD
+            if (screen === 'dual-nword') {
+                return (
+                    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+                        <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                            <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-3">
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-900">Dual N-Word</h2>
+                                    <p className="text-xs text-slate-600">Minijuego cargado desde {DUAL_NWORD_FILE}</p>
+                                </div>
+                                <button onClick={() => setScreen('menu')} className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-slate-700">
+                                    Volver al menú
+                                </button>
+                            </div>
+                            <iframe
+                                src={DUAL_NWORD_FILE}
+                                title="Dual N-Word"
+                                className="w-full h-[75vh] bg-white"
+                            />
+                        </div>
+                    </div>
+                );
+            }
 
             // 3.6 DEFINITION GAME
             if (screen === 'definition-game') {
